@@ -1,6 +1,6 @@
 class Pen {
     public synchronized void writeWithPenAndPaper(Paper paper) {
-        System.out.println(Thread.currentThread().getName() + " is using pen " + this + " and trying to user "+ paper);
+        System.out.println(Thread.currentThread().getName() + " is using pen " + this + " and trying to user " + paper);
         paper.finishWriting();
     }
 
@@ -32,7 +32,9 @@ class PenTask implements Runnable {
 
     @Override
     public void run() {
-        pen.writeWithPenAndPaper(paper); // pen thread locks pen and tried to lock paper
+        synchronized(paper){  //consistent ordering i.e get paper first and then run pen
+            pen.writeWithPenAndPaper(paper); // pen thread locks pen and tried to lock paper
+        }
     }
 
 }
