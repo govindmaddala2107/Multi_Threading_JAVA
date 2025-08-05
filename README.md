@@ -690,3 +690,5 @@ ExecutorService cache = Executors.newCachedThreadPool();
   F7-ok
   Main
   ```
+  - By default, CompletableFuture tasks often run on daemon threads due to the use of **Fork.JoinPool.commonPool**. You can control the thread type by providing a custom executor service. The CompletableFuture task itself doesn't dictate whether it's a daemon or user thread.
+  
