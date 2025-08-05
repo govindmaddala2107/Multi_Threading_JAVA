@@ -691,4 +691,115 @@ ExecutorService cache = Executors.newCachedThreadPool();
   Main
   ```
   - By default, CompletableFuture tasks often run on daemon threads due to the use of **Fork.JoinPool.commonPool**. You can control the thread type by providing a custom executor service. The CompletableFuture task itself doesn't dictate whether it's a daemon or user thread.
+
+### Volatile and Atomic:
+- When a resource is shared between threads, they always make a copy of variables in their cache for fast accessing. But in this meanwhile if those variables got updated, those won't get reflected in thread's cache. 
+- So as to make threads to access memory from **RAM**, we have to use **volatile** keyword. But it should be used for flags but not for variables having data.
+  ```
+  class SharedObjNormal{
+    private boolean flag = false;
+
+    public void setFlagTrue(){
+        System.out.println("Writer thread made the flag true");
+        flag = true;
+    }
+
+    public void printFlagTrue(){
+        while (!flag) {
+            // do nothing
+        }
+        System.out.println("Flag is true");
+    }
+  }
+
+  SharedObjNormal obj = new SharedObjNormal();
+
+  Thread writerThread = new Thread(()-> {
+      try {
+          Thread.sleep(1000);
+      } catch (Exception e) {
+          Thread.currentThread().interrupt();
+      }
+      obj.setFlagTrue();
+  });
+  Thread readThread = new Thread(()-> obj.printFlagTrue());
+
+  writerThread.start();
+  readThread.start();
+  ```
+  - Here, readThread stuck in while loop, where writerThread make flag true after 1 second, but still readThread is in infinite loop because in its cache flag is flag but not true.
+  - So as to read from **RAM**, code should be like:
+  ```
+  <!-- Before -->
+  private boolean flag = false;
+
+  <!-- Now -->
+  private volatile boolean flag = false;
+
+  <!-- Rest all remains same -->
+  ```
+- Volatile for counter:
+  - Now I want to use volatile for counter.
+  ```
+  package volatile_atomic.atomic_class;
+
+  public class VolatileCounter {
+      private volatile int counter = 0;
+
+      public void increment() {
+          counter++;
+      }
+
+      public void getCounter() {
+          System.out.println(counter);
+      }
+
+      public static void main(String[] args) throws InterruptedException {
+          VolatileCounter vc = new VolatileCounter();
+          Thread t1 = new Thread(() -> {
+              for (int i = 0; i < 1000; i++) {
+                  vc.increment();
+              }
+          });
+          Thread t2 = new Thread(() -> {
+              for (int i = 0; i < 1000; i++) {
+                  vc.increment();
+              }
+          });
+          t1.start();
+          t2.start();
+          t1.join();
+          t2.join();
+
+          vc.getCounter(); // < 2000 only
+      }
+  }
+  ```
+  - Here getCounter is always < 2000. Using syncronized, locks and with other things, we can make this 2000. But with atomic classes, we can handle in another way.
+  ```
+  <!-- Before -->
+  private volatile int counter = 0;
+
+  public void increment() {
+      counter++;
+  }
+
+  public void getCounter() {
+      System.out.println(counter);
+  }
+
+  <!-- Now -->
+  private AtomicInteger counter = new AtomicInteger(0);
+
+  public void increment() {
+      // counter++;
+      counter.incrementAndGet();
+  }
+
+  public void getCounter() {
+      System.out.println(counter.get());
+  }
+
+  <!-- Rest other remains same -->
+  ```
   
