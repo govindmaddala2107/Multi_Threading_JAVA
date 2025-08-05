@@ -524,3 +524,169 @@ ExecutorService cache = Executors.newCachedThreadPool();
   ```
   - Note:
     - Cyclic barrier won't block the main thread.
+
+### CompletableFuture:
+- introduced in **Java 8**. It helps in handling asynchronous operations.
+- Handling one at once:
+  ```
+  CompletableFuture<String> f1 = CompletableFuture.supplyAsync(() -> {
+      try {
+          Thread.sleep(5000);
+          System.out.println("F1-Thread-1");
+      } catch (Exception e) {
+      }
+      return "F1-ok";
+  });
+  System.out.println("Main");
+
+  // Initiating single one:
+  try {
+      System.out.println(f1.get());
+  } catch (InterruptedException | ExecutionException e) {
+  }
+
+  Output:
+  F1-Thread-1
+  F1-ok
+  Main
+  ```
+- Handling multiple at once:
+  ```
+  CompletableFuture<String> f2 = CompletableFuture.supplyAsync(() -> {
+      try {
+          Thread.sleep(5000);
+          System.out.println("F2-Thread-2");
+      } catch (Exception e) {
+      }
+      return "F2-Ok";
+  });
+  CompletableFuture<String> f3 = CompletableFuture.supplyAsync(() -> {
+      try {
+          Thread.sleep(5000);
+          System.out.println("F3-Thread-1");
+      } catch (Exception e) {
+      }
+      return "F3-Ok";
+  });
+  // Initiating many at a time.
+  CompletableFuture<Void> joinFuture = CompletableFuture.allOf(f2, f3);
+  joinFuture.join();
+  System.out.println(f2.get());
+  System.out.println(f3.get());
+  System.out.println("Main");
+
+  Output:
+  F2-Thread-2
+  F3-Thread-3
+  F2-Ok
+  F3-Ok
+  Main
+  ```
+  - Here in **CompletableFuture<Void>**, void is because it mentions that tasks are finished but to get value of them , use f2.get() like that only.
+- Blocking at first step using .get():
+  ```
+  try {
+      String f4 = CompletableFuture.supplyAsync(() -> {
+          try {
+              Thread.sleep(5000);
+              System.out.println("F4-Thread-4");
+          } catch (Exception e) {
+          }
+          return "F4-ok";
+      }).get();
+      System.out.println(f4);
+  } catch (InterruptedException | ExecutionException e) {
+      e.printStackTrace();
+  }
+  System.out.println("Main");
+
+  Output:
+  F4-Thread-4
+  F4-ok
+  Main
+  ```
+  - here .get() blocks the code.
+- Callback kind of:
+  ```
+  CompletableFuture<String> f5 = CompletableFuture.supplyAsync(() -> {
+      try {
+          Thread.sleep(5000);
+          System.out.println("F5-Thread-5");
+      } catch (Exception e) {
+      }
+      return "F5-ok";
+  }).thenApplyAsync(x -> x + " || " + x);
+  try {
+      System.out.println(f5.get());
+  } catch (InterruptedException | ExecutionException e) {
+      e.printStackTrace();
+  }
+  System.out.println("Main");
+
+  Output:
+  F5-Thread-5
+  F5-ok || F5-ok
+  Main
+  ```
+  - here **thenApplyAsync** takes one function and have parameter equals to data returning and performs and returns. Here x = F5-ok
+
+- Timeout with no exception handling:
+  ```
+  // timeout
+  CompletableFuture<String> f6 = CompletableFuture.supplyAsync(() -> {
+      try {
+          Thread.sleep(5000);
+          System.out.println("F6-Thread-6");
+      } catch (Exception e) {
+      }
+      return "F6-ok";
+  }).orTimeout(1, TimeUnit.SECONDS)
+  ```
+  - It throws an exception if f6 is not resolved in 1 second as given in **orTimeout**.
+- Timeout with exception handling:
+  ```
+  // timeout
+  CompletableFuture<String> f6 = CompletableFuture.supplyAsync(() -> {
+      try {
+          Thread.sleep(5000);
+          System.out.println("F6-Thread-6");
+      } catch (Exception e) {
+      }
+      return "F6-ok";
+  }).orTimeout(1, TimeUnit.SECONDS).exceptionally(s -> "Timeout occured");
+  System.out.println(f6.get());
+  System.out.println("Main");
+
+  Output:
+  F6-Thread-6
+  Timeout occured
+  F6-ok
+  Main
+  ```
+  - It throws an exception if f6 is not resolved in 1 second as given in **orTimeout**.
+- Integrating Executors:
+  ```
+  // Passing executor
+  ExecutorService executor = Executors.newFixedThreadPool(1);
+  CompletableFuture<String> f7 = CompletableFuture.supplyAsync(() -> {
+      try {
+          Thread.sleep(5000);
+          System.out.println("F7-Thread-7");
+      } catch (Exception e) {
+      }
+      return "F7-ok";
+  }, executor);
+  try {
+      System.out.println(f7.get());
+      executor.shutdown();
+  } catch (InterruptedException | ExecutionException e) {
+      e.printStackTrace();
+  }
+
+  System.out.println("Main");
+
+  Output:
+  F7-Thread-7
+  F7-ok
+  Main
+  ```
